@@ -1,0 +1,32 @@
+# Flutter / Dart
+.dart_tool/
+build/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+.pubspec.lock
+*.log
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Android
+.gradle/
+android/.gradle
+android/local.properties
+android/app/build/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Runner.xcworkspace/
+
+# VS Code / IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# macOS
+.DS_Store
