@@ -14,3 +14,9 @@ A premium Flutter mobile app with beautiful Airbnb-style UI for finding dream ho
 ```bash
 git clone https://github.com/makara17092020/houing_finder.git
 cd houing_finder
+
+2. Install dependencies
+Bashflutter pub get
+
+3. Run the app
+Bashflutter run
