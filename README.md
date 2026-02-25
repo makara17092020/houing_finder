@@ -1,16 +1,16 @@
-# houing_finder
+# Housing Finder 🏠
 
-A new Flutter project.
+A premium Flutter mobile app with beautiful Airbnb-style UI for finding dream homes.
 
-## Getting Started
+## ✨ Features
+- Modern login & register with smooth animations & Hero effects
+- Luxury gradient design + Poppins typography
+- Elegant home screen with search, categories & featured properties
+- Fully responsive & production-ready
 
-This project is a starting point for a Flutter application.
+## 🚀 Quick Start for Teammates
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 1. Clone the repo
+```bash
+git clone https://github.com/makara17092020/houing_finder.git
+cd houing_finder
