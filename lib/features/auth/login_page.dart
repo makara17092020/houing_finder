@@ -78,7 +78,9 @@ class _LoginPageState extends State<LoginPage>
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } else {
-      Navigator.pop(context, true); // return success to caller
+      // SUCCESS: Returning 'true' tells the calling page (Product Detail)
+      // that login was successful, so it can auto-navigate to the Review page.
+      Navigator.pop(context, true);
     }
   }
 
@@ -280,7 +282,7 @@ class _LoginPageState extends State<LoginPage>
                             _buildOrDivider(),
                             const SizedBox(height: 32),
 
-                            // Social Buttons (now using real FontAwesome icons)
+                            // Social Buttons
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -346,6 +348,7 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
+  // Input Field remains identical in style
   Widget _buildInputField({
     required TextEditingController controller,
     required String hint,
@@ -382,6 +385,7 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
+  // Login Button remains identical in style
   Widget _buildLoginButton() {
     return SizedBox(
       width: double.infinity,
