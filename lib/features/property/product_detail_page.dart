@@ -6,7 +6,6 @@ import 'package:houing_finder/features/auth/review_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/auth_service.dart';
-
 import 'models/property.dart';
 
 class ProductDetailPage extends StatelessWidget {
@@ -15,11 +14,10 @@ class ProductDetailPage extends StatelessWidget {
   const ProductDetailPage({super.key, required this.property});
 
   void _showLoginPrompt(BuildContext context, String action) async {
-    // show dialog asking user to login or register before continuing
     await showDialog<String?>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -61,7 +59,7 @@ class ProductDetailPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(dialogContext),
                     child: Text(
                       "Cancel",
                       style: GoogleFonts.poppins(
@@ -74,7 +72,10 @@ class ProductDetailPage extends StatelessWidget {
                   const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(context);
+                      Navigator.pop(dialogContext); // Close Dialog
+                      if (!context.mounted) return;
+
+                      // Wait for result from LoginPage
                       final logged = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
@@ -82,7 +83,9 @@ class ProductDetailPage extends StatelessWidget {
                               const LoginPage(redirectToHome: false),
                         ),
                       );
-                      if (logged == true) {
+
+                      // If login was successful, auto-link to review page
+                      if (logged == true && context.mounted) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const ReviewPage()),
@@ -111,15 +114,20 @@ class ProductDetailPage extends StatelessWidget {
                   const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(context);
-                      final logged = await Navigator.push<bool>(
+                      Navigator.pop(dialogContext); // Close Dialog
+                      if (!context.mounted) return;
+
+                      // Wait for result from RegisterPage
+                      final registered = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
                               const RegisterPage(redirectToHome: false),
                         ),
                       );
-                      if (logged == true) {
+
+                      // If registration was successful, auto-link to review page
+                      if (registered == true && context.mounted) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const ReviewPage()),
@@ -152,8 +160,6 @@ class ProductDetailPage extends StatelessWidget {
         ),
       ),
     );
-
-    // result ignored; navigation to review handled in callbacks above
   }
 
   @override
@@ -168,20 +174,17 @@ class ProductDetailPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Large Property Image
             Image.network(
               property.imageUrl,
               height: 380,
               width: double.infinity,
               fit: BoxFit.cover,
             ),
-
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title & Location
                   Text(
                     property.title,
                     style: GoogleFonts.poppins(
@@ -208,10 +211,7 @@ class ProductDetailPage extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Price
                   Text(
                     "\$${property.price}/month",
                     style: GoogleFonts.poppins(
@@ -220,10 +220,7 @@ class ProductDetailPage extends StatelessWidget {
                       color: const Color(0xFF1E3A8A),
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Specs
                   Row(
                     children: [
                       _buildSpec(
@@ -237,10 +234,7 @@ class ProductDetailPage extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 40),
-
-                  // Amenities
                   Text(
                     "Amenities",
                     style: GoogleFonts.poppins(
@@ -261,10 +255,7 @@ class ProductDetailPage extends StatelessWidget {
                       _buildAmenityChip(Icons.fitness_center, "Gym"),
                     ],
                   ),
-
                   const SizedBox(height: 40),
-
-                  // Agent Details Card
                   Text(
                     "Agent Details",
                     style: GoogleFonts.poppins(
@@ -291,11 +282,10 @@ class ProductDetailPage extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            // Agent Image
                             const CircleAvatar(
                               radius: 32,
                               backgroundImage: NetworkImage(
-                                'https://picsum.photos/id/1062/100/100', // Placeholder image
+                                'https://picsum.photos/id/1062/100/100',
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -342,109 +332,25 @@ class ProductDetailPage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        // Phone
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.phone,
-                              color: Color(0xFF1E3A8A),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                "Phone number: +855 123 456 789",
-                                style: GoogleFonts.poppins(fontSize: 16),
-                              ),
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF10B981),
-                                    Color(0xFF34D399),
-                                  ],
-                                ),
-                              ),
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final Uri url = Uri.parse(
-                                    'tel:+855123456789',
-                                  );
-                                  if (await canLaunchUrl(url)) {
-                                    await launchUrl(url);
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: const Text("Call"),
-                              ),
-                            ),
-                          ],
+                        _buildContactRow(
+                          Icons.phone,
+                          "Phone number: +855 123 456 789",
+                          'tel:+855123456789',
+                          "Call",
                         ),
                         const SizedBox(height: 16),
-                        // Telegram
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.telegram,
-                              color: Color(0xFF1E3A8A),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                "Telegram: @sophie_lin_agent",
-                                style: GoogleFonts.poppins(fontSize: 16),
-                              ),
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF10B981),
-                                    Color(0xFF34D399),
-                                  ],
-                                ),
-                              ),
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final Uri url = Uri.parse(
-                                    'https://t.me/sophie_lin_agent',
-                                  );
-                                  if (await canLaunchUrl(url)) {
-                                    await launchUrl(url);
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: const Text("Message"),
-                              ),
-                            ),
-                          ],
+                        _buildContactRow(
+                          Icons.telegram,
+                          "Telegram: @sophie_lin_agent",
+                          'https://t.me/sophie_lin_agent',
+                          "Message",
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // Rating & Reviews with Bar Graph
                   GestureDetector(
                     onTap: () {
-                      // require login before showing review page
                       if (AuthService.isLoggedIn) {
                         Navigator.push(
                           context,
@@ -499,7 +405,7 @@ class ProductDetailPage extends StatelessWidget {
                               ),
                               const Spacer(),
                               Text(
-                                "See all reviews",
+                                "Rate Our Property",
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -509,24 +415,16 @@ class ProductDetailPage extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          // Bar Graph
-                          Column(
-                            children: [
-                              _buildRatingBar(5, 0.68),
-                              _buildRatingBar(4, 0.21),
-                              _buildRatingBar(3, 0.06),
-                              _buildRatingBar(2, 0.02),
-                              _buildRatingBar(1, 0.01),
-                            ],
-                          ),
+                          _buildRatingBar(5, 0.68),
+                          _buildRatingBar(4, 0.21),
+                          _buildRatingBar(3, 0.06),
+                          _buildRatingBar(2, 0.02),
+                          _buildRatingBar(1, 0.01),
                         ],
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // Description
                   Text(
                     "Description",
                     style: GoogleFonts.poppins(
@@ -543,7 +441,6 @@ class ProductDetailPage extends StatelessWidget {
                       color: Colors.grey[700],
                     ),
                   ),
-
                   const SizedBox(height: 100),
                 ],
               ),
@@ -551,6 +448,43 @@ class ProductDetailPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContactRow(
+    IconData icon,
+    String label,
+    String urlString,
+    String btnText,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF1E3A8A), size: 24),
+        const SizedBox(width: 12),
+        Expanded(child: Text(label, style: GoogleFonts.poppins(fontSize: 16))),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF10B981), Color(0xFF34D399)],
+            ),
+          ),
+          child: ElevatedButton(
+            onPressed: () async {
+              final Uri url = Uri.parse(urlString);
+              if (await canLaunchUrl(url)) await launchUrl(url);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Text(btnText),
+          ),
+        ),
+      ],
     );
   }
 
