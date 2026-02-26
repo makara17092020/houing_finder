@@ -87,9 +87,9 @@ class _LoginPageState extends State<LoginPage>
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 650),
-        pageBuilder: (_, __, ___) =>
+        pageBuilder: (_, _, _) =>
             RegisterPage(redirectToHome: widget.redirectToHome),
-        transitionsBuilder: (_, animation, __, child) {
+        transitionsBuilder: (_, animation, _, child) {
           return FadeTransition(
             opacity: animation,
             child: SlideTransition(
