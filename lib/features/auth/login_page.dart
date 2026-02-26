@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../core/auth_service.dart';
+
 import '../home/home_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  /// If true the page will replace itself with [HomePage] after successful
+  /// authentication.  When launching from another page that needs to react to
+  /// the login (for example the product detail view) pass `redirectToHome: false`.
+  const LoginPage({super.key, this.redirectToHome = true});
+
+  final bool redirectToHome;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -60,11 +67,18 @@ class _LoginPageState extends State<LoginPage>
     await Future.delayed(const Duration(seconds: 2)); // Simulate API
     setState(() => _isLoading = false);
 
-    if (mounted) {
+    // mark authenticated
+    AuthService.isLoggedIn = true;
+
+    if (!mounted) return;
+
+    if (widget.redirectToHome) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
+    } else {
+      Navigator.pop(context, true); // return success to caller
     }
   }
 
@@ -73,7 +87,8 @@ class _LoginPageState extends State<LoginPage>
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 650),
-        pageBuilder: (_, __, ___) => const RegisterPage(),
+        pageBuilder: (_, __, ___) =>
+            RegisterPage(redirectToHome: widget.redirectToHome),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
             opacity: animation,

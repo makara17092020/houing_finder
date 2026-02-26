@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/auth_service.dart';
+
 import '../home/home_page.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  /// If true the page pushes replacement to [HomePage] after registration.
+  /// Set to false when you want the caller to handle post-signup actions.
+  const RegisterPage({super.key, this.redirectToHome = true});
+
+  final bool redirectToHome;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -65,11 +71,17 @@ class _RegisterPageState extends State<RegisterPage>
     await Future.delayed(const Duration(seconds: 2)); // Simulate API call
     setState(() => _isLoading = false);
 
-    if (mounted) {
+    // mark authenticated
+    AuthService.isLoggedIn = true;
+
+    if (!mounted) return;
+    if (widget.redirectToHome) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
+    } else {
+      Navigator.pop(context, true);
     }
   }
 
@@ -79,7 +91,7 @@ class _RegisterPageState extends State<RegisterPage>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 650),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginPage(),
+            LoginPage(redirectToHome: widget.redirectToHome),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,

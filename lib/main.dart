@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'core/theme.dart';
-import 'features/auth/login_page.dart';
+import 'features/splash/splash_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,10 +11,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Housing Finder",
+      title: 'Housing Finder',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: const LoginPage(),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        fontFamily: 'Poppins',
+        useMaterial3: true,
+      ),
+      home: const SplashPage(), // ← Starts with Splash
     );
   }
 }
