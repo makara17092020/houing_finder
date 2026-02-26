@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:houing_finder/features/auth/all_reviews_page.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({super.key});
@@ -23,6 +24,41 @@ class _ReviewPageState extends State<ReviewPage>
     "Good location",
     "Fast response",
     "Poor Communication",
+  ];
+
+  // MOCK DATA: List of user reviews
+  final List<Map<String, dynamic>> _userReviews = [
+    {
+      "name": "Sarah Jenkins",
+      "image": "https://i.pravatar.cc/150?img=5",
+      "rating": 5,
+      "date": "2 days ago",
+      "description":
+          "Absolutely loved this apartment! Sophie was incredibly helpful and the location is perfect. Highly recommend.",
+    },
+    {
+      "name": "Michael Chen",
+      "image": "https://i.pravatar.cc/150?img=11",
+      "rating": 4,
+      "date": "1 week ago",
+      "description":
+          "Great place with lots of natural light. Only giving 4 stars because parking was a bit tricky to find.",
+    },
+    {
+      "name": "Emma Thompson",
+      "image": "https://i.pravatar.cc/150?img=9",
+      "rating": 5,
+      "date": "2 weeks ago",
+      "description":
+          "Super clean and exactly as pictured. The agent was fast to respond to all my questions.",
+    },
+    {
+      "name": "David Miller",
+      "image": "https://i.pravatar.cc/150?img=12",
+      "rating": 3,
+      "date": "1 month ago",
+      "description": "It's an okay place, but a bit noisy at night.",
+    },
   ];
 
   @override
@@ -150,7 +186,7 @@ class _ReviewPageState extends State<ReviewPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "apartment",
+                              "Apartment",
                               style: GoogleFonts.poppins(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
@@ -189,13 +225,69 @@ class _ReviewPageState extends State<ReviewPage>
 
                 const SizedBox(height: 40),
 
-                // Star Rating Selector
+                // Rating Breakdown
+                _buildRatingBar(5, 84),
+                _buildRatingBar(4, 26),
+                _buildRatingBar(3, 8),
+                _buildRatingBar(2, 2),
+                _buildRatingBar(1, 1),
+
+                const SizedBox(height: 40),
+
+                // --- NEW USER REVIEWS SECTION ---
+                Text(
+                  "Recent Reviews",
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Show only the first 3 reviews
+                ..._userReviews
+                    .take(3)
+                    .map((review) => _buildUserReviewCard(review)),
+
+                // See all reviews button
+                // Locate this part in your ReviewPage.dart
+                if (_userReviews.length > 3)
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        // --- UPDATE THIS PART ---
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                AllReviewsPage(reviews: _userReviews),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "See all ${_userReviews.length} reviews",
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E3A8A),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 40),
+                // --------------------------------
+
+                // Star Rating Selector (Submit a review)
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
                     position: _slideAnimation,
                     child: Column(
                       children: [
+                        const Divider(),
+                        const SizedBox(height: 24),
                         Text(
                           "How would you rate this place?",
                           style: GoogleFonts.poppins(
@@ -228,15 +320,6 @@ class _ReviewPageState extends State<ReviewPage>
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 40),
-
-                // Rating Breakdown (from screenshot)
-                _buildRatingBar(5, 84),
-                _buildRatingBar(4, 26),
-                _buildRatingBar(3, 8),
-                _buildRatingBar(2, 2),
-                _buildRatingBar(1, 1),
 
                 const SizedBox(height: 40),
 
@@ -360,6 +443,83 @@ class _ReviewPageState extends State<ReviewPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Helper widget to build the individual user review boxes
+  Widget _buildUserReviewCard(Map<String, dynamic> review) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundImage: NetworkImage(review["image"]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review["name"],
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    Text(
+                      review["date"],
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < review["rating"]
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    color: index < review["rating"]
+                        ? Colors.amber
+                        : Colors.grey[300],
+                    size: 18,
+                  );
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            review["description"],
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }

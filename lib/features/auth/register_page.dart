@@ -69,12 +69,16 @@ class _RegisterPageState extends State<RegisterPage>
 
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 2)); // Simulate API call
-    setState(() => _isLoading = false);
 
     // mark authenticated
     AuthService.isLoggedIn = true;
 
+    setState(() => _isLoading = false);
+
     if (!mounted) return;
+
+    // LOGIC: If we came from Product Detail, redirectToHome is FALSE.
+    // So we pop(context, true) to tell Product Detail to open Review Page.
     if (widget.redirectToHome) {
       Navigator.pushReplacement(
         context,
