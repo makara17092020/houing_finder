@@ -1,14 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 import '../../core/auth_service.dart';
 
-import '../home/home_page.dart';
+import 'review_page.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  /// If true the page pushes replacement to [HomePage] after registration.
-  /// Set to false when you want the caller to handle post-signup actions.
   const RegisterPage({super.key, this.redirectToHome = true});
 
   final bool redirectToHome;
@@ -68,24 +68,70 @@ class _RegisterPageState extends State<RegisterPage>
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2)); // Simulate API call
 
-    // mark authenticated
-    AuthService.isLoggedIn = true;
-
-    setState(() => _isLoading = false);
-
-    if (!mounted) return;
-
-    // LOGIC: If we came from Product Detail, redirectToHome is FALSE.
-    // So we pop(context, true) to tell Product Detail to open Review Page.
-    if (widget.redirectToHome) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+    try {
+      final regResponse = await http.post(
+        Uri.parse('${AuthService.baseUrl}/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "fullname": fullNameController.text.trim(),
+          "username": usernameController.text.trim(),
+          "phone": phoneController.text.trim(),
+          "email": emailController.text.trim(),
+          "password": passwordController.text,
+        }),
       );
-    } else {
-      Navigator.pop(context, true);
+
+      if (regResponse.statusCode == 201) {
+        final loginResponse = await http.post(
+          Uri.parse('${AuthService.baseUrl}/api/auth/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            "email": emailController.text.trim(),
+            "password": passwordController.text,
+          }),
+        );
+
+        if (loginResponse.statusCode == 200) {
+          final loginData = jsonDecode(loginResponse.body);
+          AuthService.saveToken(loginData['accessToken']);
+        }
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ReviewPage()),
+        );
+      } else {
+        String errorMsg = 'Registration failed. Please try again.';
+        try {
+          final errorData = jsonDecode(regResponse.body);
+          errorMsg = errorData['message'] ?? errorMsg;
+        } catch (_) {}
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg, style: GoogleFonts.poppins()),
+              backgroundColor: Colors.red[700],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Network error. Please check your connection.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -137,7 +183,6 @@ class _RegisterPageState extends State<RegisterPage>
               children: [
                 const SizedBox(height: 48),
 
-                // Elegant header with Hero logo
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
@@ -153,7 +198,7 @@ class _RegisterPageState extends State<RegisterPage>
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
+                                  color: Colors.black.withOpacity(0.06),
                                   blurRadius: 25,
                                   offset: const Offset(0, 10),
                                 ),
@@ -194,7 +239,6 @@ class _RegisterPageState extends State<RegisterPage>
 
                 const SizedBox(height: 52),
 
-                // Premium card
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
@@ -206,7 +250,7 @@ class _RegisterPageState extends State<RegisterPage>
                         borderRadius: BorderRadius.circular(32),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.07),
+                            color: Colors.black.withOpacity(0.07),
                             blurRadius: 50,
                             offset: const Offset(0, 20),
                           ),
@@ -216,7 +260,6 @@ class _RegisterPageState extends State<RegisterPage>
                         key: _formKey,
                         child: Column(
                           children: [
-                            // Full Name
                             _buildInputField(
                               controller: fullNameController,
                               hint: "Full name",
@@ -227,7 +270,6 @@ class _RegisterPageState extends State<RegisterPage>
                             ),
                             const SizedBox(height: 20),
 
-                            // Username
                             _buildInputField(
                               controller: usernameController,
                               hint: "Username",
@@ -238,7 +280,6 @@ class _RegisterPageState extends State<RegisterPage>
                             ),
                             const SizedBox(height: 20),
 
-                            // Phone
                             _buildInputField(
                               controller: phoneController,
                               hint: "Phone number",
@@ -250,7 +291,6 @@ class _RegisterPageState extends State<RegisterPage>
                             ),
                             const SizedBox(height: 20),
 
-                            // Email
                             _buildInputField(
                               controller: emailController,
                               hint: "Email address",
@@ -264,7 +304,6 @@ class _RegisterPageState extends State<RegisterPage>
                             ),
                             const SizedBox(height: 20),
 
-                            // Password
                             _buildInputField(
                               controller: passwordController,
                               hint: "Password",
@@ -288,12 +327,10 @@ class _RegisterPageState extends State<RegisterPage>
 
                             const SizedBox(height: 32),
 
-                            // Premium gradient button
                             _buildRegisterButton(),
 
                             const SizedBox(height: 40),
 
-                            // Sign in link with Hero
                             GestureDetector(
                               onTap: _navigateToLogin,
                               child: Hero(
@@ -392,7 +429,7 @@ class _RegisterPageState extends State<RegisterPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1E3A8A).withValues(alpha: 0.3),
+              color: const Color(0xFF1E3A8A).withOpacity(0.3),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
