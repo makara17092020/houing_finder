@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:houing_finder/features/auth/login_page.dart';
-import 'package:houing_finder/features/auth/register_page.dart';
-import 'package:houing_finder/features/auth/review_page.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/auth_service.dart';
-import 'models/property.dart';
+import '../auth/login_page.dart';
+import '../auth/register_page.dart';
+import '../auth/review_page.dart';
+import '../../models/property.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final Property property;
 
   const ProductDetailPage({super.key, required this.property});
 
+  // ── Login prompt (unchanged logic) ────────────────────────────────────────
   void _showLoginPrompt(BuildContext context, String action) async {
     await showDialog<String?>(
       context: context,
@@ -41,18 +41,15 @@ class ProductDetailPage extends StatelessWidget {
               Text(
                 "Login Required",
                 style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF111827),
-                ),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF111827)),
               ),
               const SizedBox(height: 12),
               Text(
                 "Please login or register $action.",
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  color: Colors.grey[700],
-                ),
+                style:
+                GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
               ),
               const SizedBox(height: 32),
               Row(
@@ -60,98 +57,69 @@ class ProductDetailPage extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(dialogContext),
-                    child: Text(
-                      "Cancel",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: Text("Cancel",
+                        style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w600)),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(dialogContext); // Close Dialog
+                      Navigator.pop(dialogContext);
                       if (!context.mounted) return;
-
-                      // Wait for result from LoginPage
                       final logged = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const LoginPage(redirectToHome: false),
-                        ),
+                            builder: (_) =>
+                            const LoginPage(redirectToHome: false)),
                       );
-
-                      // If login was successful, auto-link to review page
                       if (logged == true && context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ReviewPage()),
-                        );
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ReviewPage()));
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                          horizontal: 24, vertical: 12),
                       backgroundColor: const Color(0xFF1E3A8A),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                          borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text(
-                      "Login",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: Text("Login",
+                        style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600)),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(dialogContext); // Close Dialog
+                      Navigator.pop(dialogContext);
                       if (!context.mounted) return;
-
-                      // Wait for result from RegisterPage
                       final registered = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const RegisterPage(redirectToHome: false),
-                        ),
+                            builder: (_) =>
+                            const RegisterPage(redirectToHome: false)),
                       );
-
-                      // If registration was successful, auto-link to review page
                       if (registered == true && context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ReviewPage()),
-                        );
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ReviewPage()));
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                          horizontal: 24, vertical: 12),
                       backgroundColor: const Color(0xFF10B981),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                          borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text(
-                      "Register",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: Text("Register",
+                        style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -164,6 +132,12 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ── Not-Found guard ──────────────────────────────────────────────────────
+    // If title is empty or id is '0'/'', treat as not found.
+    final bool notFound = property.title.trim().isEmpty;
+    if (notFound) return _buildNotFoundPage(context);
+
+    // ── Normal detail page ───────────────────────────────────────────────────
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -174,273 +148,165 @@ class ProductDetailPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // ── Hero image ──────────────────────────────────────────────
             Image.network(
               property.imageUrl,
               height: 380,
               width: double.infinity,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: 380,
+                color: Colors.grey[200],
+                child: const Icon(Icons.image_not_supported_rounded,
+                    size: 60, color: Colors.grey),
+              ),
             ),
+
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Title & location ──────────────────────────────────
                   Text(
                     property.title,
                     style: GoogleFonts.poppins(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF111827),
-                    ),
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827)),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Color(0xFF1E3A8A),
-                        size: 22,
-                      ),
+                      const Icon(Icons.location_on,
+                          color: Color(0xFF10B981), size: 22),
                       const SizedBox(width: 8),
-                      Text(
-                        property.location,
-                        style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          color: Colors.grey[700],
+                      Expanded(
+                        child: Text(
+                          property.location,
+                          style: GoogleFonts.poppins(
+                              fontSize: 17, color: Colors.grey[700]),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    "\$${property.price}/month",
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E3A8A),
+
+                  // ── Category chip ─────────────────────────────────────
+                  if (property.category.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        property.category.toUpperCase(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF047857),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
+
                   const SizedBox(height: 24),
+
+                  // ── Price ─────────────────────────────────────────────
+                  Text(
+                    "\$${property.price.toStringAsFixed(0)}/month",
+                    style: GoogleFonts.poppins(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1E3A8A)),
+                  ),
+
+                  // ── Utility costs ─────────────────────────────────────
+                  if (property.electricityCost > 0 ||
+                      property.waterCost > 0) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        if (property.electricityCost > 0)
+                          _buildUtilityBadge(
+                            Icons.bolt_rounded,
+                            "\$${property.electricityCost.toStringAsFixed(0)}/kWh",
+                            const Color(0xFFF59E0B),
+                          ),
+                        if (property.electricityCost > 0 &&
+                            property.waterCost > 0)
+                          const SizedBox(width: 10),
+                        if (property.waterCost > 0)
+                          _buildUtilityBadge(
+                            Icons.water_drop_rounded,
+                            "\$${property.waterCost.toStringAsFixed(0)}/m³",
+                            const Color(0xFF3B82F6),
+                          ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  // ── Beds / Baths ──────────────────────────────────────
                   Row(
                     children: [
                       _buildSpec(
-                        Icons.king_bed_outlined,
-                        "${property.beds} Bedroom",
-                      ),
+                          Icons.king_bed_outlined, "${property.beds} Bedroom"),
                       const SizedBox(width: 32),
-                      _buildSpec(
-                        Icons.bathtub_outlined,
-                        "${property.baths} Bathroom",
-                      ),
+                      _buildSpec(Icons.bathtub_outlined,
+                          "${property.baths} Bathroom"),
                     ],
                   ),
+
                   const SizedBox(height: 40),
-                  Text(
-                    "Amenities",
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+
+                  // ── Description ───────────────────────────────────────
+                  if (property.description.isNotEmpty) ...[
+                    _buildSectionTitle("Description"),
+                    const SizedBox(height: 12),
+                    Text(
+                      property.description,
+                      style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: Colors.grey[700]),
                     ),
-                  ),
+                    const SizedBox(height: 40),
+                  ],
+
+                  // ── Availability banner ───────────────────────────────
+                  _buildAvailabilityBanner(),
+                  const SizedBox(height: 40),
+
+                  // ── Agent Details ─────────────────────────────────────
+                  if (property.agentName.isNotEmpty) ...[
+                    _buildSectionTitle("Agent Details"),
+                    const SizedBox(height: 16),
+                    _buildAgentCard(),
+                    const SizedBox(height: 40),
+                  ],
+
+                  // ── Reviews section ───────────────────────────────────
+                  _buildSectionTitle("Reviews"),
                   const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _buildAmenityChip(Icons.wifi, "WiFi"),
-                      _buildAmenityChip(Icons.pool, "Pool"),
-                      _buildAmenityChip(Icons.ac_unit, "Air Conditioning"),
-                      _buildAmenityChip(Icons.local_parking, "Parking"),
-                      _buildAmenityChip(Icons.security, "24/7 Security"),
-                      _buildAmenityChip(Icons.fitness_center, "Gym"),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  Text(
-                    "Agent Details",
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const CircleAvatar(
-                              radius: 32,
-                              backgroundImage: NetworkImage(
-                                'https://picsum.photos/id/1062/100/100',
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Sophie Lin",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        "Real Estate Agent",
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 15,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Icon(
-                                        Icons.verified,
-                                        color: Color(0xFF1E3A8A),
-                                        size: 18,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "Usually responds within 1 hour",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: Colors.grey[500],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        _buildContactRow(
-                          Icons.phone,
-                          "Phone number: +855 123 456 789",
-                          'tel:+855123456789',
-                          "Call",
-                        ),
-                        const SizedBox(height: 16),
-                        _buildContactRow(
-                          Icons.telegram,
-                          "Telegram: @sophie_lin_agent",
-                          'https://t.me/sophie_lin_agent',
-                          "Message",
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 40),
                   GestureDetector(
                     onTap: () {
                       if (AuthService.isLoggedIn) {
                         Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ReviewPage()),
-                        );
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ReviewPage()));
                       } else {
                         _showLoginPrompt(context, "to see reviews");
                       }
                     },
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                color: Colors.amber,
-                                size: 34,
-                              ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "${property.rating} • Excellent",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    "124 reviews",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 15,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              Text(
-                                "Rate Our Property",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF1E3A8A),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          _buildRatingBar(5, 0.68),
-                          _buildRatingBar(4, 0.21),
-                          _buildRatingBar(3, 0.06),
-                          _buildRatingBar(2, 0.02),
-                          _buildRatingBar(1, 0.01),
-                        ],
-                      ),
-                    ),
+                    child: _buildReviewCard(),
                   ),
-                  const SizedBox(height: 40),
-                  Text(
-                    "Description",
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "Beautiful modern apartment in the heart of Toul Kork. Walking distance to schools, AEON Mall, and many restaurants. Fully furnished with high-speed internet and 24/7 security.",
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      height: 1.6,
-                      color: Colors.grey[700],
-                    ),
-                  ),
+
                   const SizedBox(height: 100),
                 ],
               ),
@@ -451,40 +317,285 @@ class ProductDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContactRow(
-    IconData icon,
-    String label,
-    String urlString,
-    String btnText,
-  ) {
-    return Row(
-      children: [
-        Icon(icon, color: const Color(0xFF1E3A8A), size: 24),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label, style: GoogleFonts.poppins(fontSize: 16))),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF10B981), Color(0xFF34D399)],
-            ),
-          ),
-          child: ElevatedButton(
-            onPressed: () async {
-              final Uri url = Uri.parse(urlString);
-              if (await canLaunchUrl(url)) await launchUrl(url);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+  // ── Not-found page ──────────────────────────────────────────────────────────
+  Widget _buildNotFoundPage(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF047857)),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.home_work_outlined,
+                  size: 60,
+                  color: Color(0xFF10B981),
+                ),
               ),
-            ),
-            child: Text(btnText),
+              const SizedBox(height: 32),
+              Text(
+                "Property Not Found",
+                style: GoogleFonts.poppins(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF111827),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "This property may have been removed\nor is no longer available.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: Text("Go Back", style: GoogleFonts.poppins(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 36, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  elevation: 0,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  // ── Section helpers ─────────────────────────────────────────────────────────
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
+    );
+  }
+
+  Widget _buildAvailabilityBanner() {
+    final available = property.isAvailable;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: available
+            ? const Color(0xFF10B981).withOpacity(0.1)
+            : Colors.red.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: available
+              ? const Color(0xFF10B981).withOpacity(0.3)
+              : Colors.red.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            available ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            color: available ? const Color(0xFF10B981) : Colors.red[400],
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            available ? "Available for Rent" : "Currently Unavailable",
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: available ? const Color(0xFF047857) : Colors.red[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgentCard() {
+    final hasProfileImage = property.agentProfile != null &&
+        property.agentProfile!.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Agent avatar
+          CircleAvatar(
+            radius: 32,
+            backgroundColor: const Color(0xFF10B981).withOpacity(0.15),
+            backgroundImage: hasProfileImage
+                ? NetworkImage(property.agentProfile!)
+                : null,
+            child: !hasProfileImage
+                ? Text(
+              property.agentName.isNotEmpty
+                  ? property.agentName[0].toUpperCase()
+                  : '?',
+              style: GoogleFonts.poppins(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF047857),
+              ),
+            )
+                : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  property.agentName,
+                  style: GoogleFonts.poppins(
+                      fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      "@${property.agentUsername}",
+                      style: GoogleFonts.poppins(
+                          fontSize: 14, color: Colors.grey[500]),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.verified,
+                        color: Color(0xFF1E3A8A), size: 16),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Usually responds within 1 hour",
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.star_rounded, color: Colors.amber, size: 34),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${property.rating.toStringAsFixed(1)} • Excellent",
+                    style: GoogleFonts.poppins(
+                        fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    "Tap to rate this property",
+                    style: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E3A8A).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "Rate Now →",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E3A8A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildRatingBar(5, 0.68),
+          _buildRatingBar(4, 0.21),
+          _buildRatingBar(3, 0.06),
+          _buildRatingBar(2, 0.02),
+          _buildRatingBar(1, 0.01),
+        ],
+      ),
+    );
+  }
+
+  // ── Small UI pieces ─────────────────────────────────────────────────────────
+
+  Widget _buildUtilityBadge(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Text(label,
+              style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color)),
+        ],
+      ),
     );
   }
 
@@ -493,13 +604,9 @@ class ProductDetailPage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Text(
-            "$stars",
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text("$stars",
+              style: GoogleFonts.poppins(
+                  fontSize: 16, fontWeight: FontWeight.w600)),
           const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
           const SizedBox(width: 12),
           Expanded(
@@ -509,8 +616,7 @@ class ProductDetailPage extends StatelessWidget {
                 value: progress,
                 backgroundColor: Colors.grey[200],
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF1E3A8A),
-                ),
+                    Color(0xFF1E3A8A)),
                 minHeight: 8,
               ),
             ),
@@ -527,24 +633,6 @@ class ProductDetailPage extends StatelessWidget {
         const SizedBox(width: 10),
         Text(text, style: GoogleFonts.poppins(fontSize: 17)),
       ],
-    );
-  }
-
-  Widget _buildAmenityChip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF1E3A8A), size: 20),
-          const SizedBox(width: 8),
-          Text(text, style: GoogleFonts.poppins(fontSize: 14)),
-        ],
-      ),
     );
   }
 }
