@@ -1,17 +1,14 @@
-// lib/features/home/home_page.dart
-// PREMIUM LUXURY HOUSING FINDER HOMEPAGE - SEARCH BAR MOVED DOWN
-// ✅ Massive animated green gradient hero header
-// ✅ Search bar now cleanly positioned BELOW the header (as requested)
-// ✅ All other premium features preserved (glassmorphism, animations, staggered cards, etc.)
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
-import '../../core/auth_service.dart';
-import '../auth/login_page.dart';
-import '../profile/profile_page.dart';
-import '../property/models/property.dart';
-import '../property/product_detail_page.dart';
+import '../core/auth_service.dart';
+import '../features/auth/login_page.dart';
+import '../features/profile/profile_page.dart';
+import '../models/property.dart';
+import '../features/property/product_detail_page.dart';
+import '../widgets/property_card.dart'; // ← extracted card
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,73 +22,125 @@ class _HomePageState extends State<HomePage>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedFilter = 'All';
-  String _selectedPrice = '200';
+
+  // FIX: default to '9999' so ALL properties pass the price filter on first load.
+  // Previously '200' silently hid every property priced ≥ $200.
+  String _selectedPrice = '9999';
 
   late final AnimationController _pageController;
   late final Animation<double> _headerFade;
   late final Animation<Offset> _headerSlide;
   late final Animation<double> _searchScale;
 
-  final List<Property> _allProperties = [
-    Property(
-      id: '1',
-      title: 'Modern Apartment in Toul Kork',
-      location: 'Toul Kork, Phnom Penh',
-      imageUrl: 'https://picsum.photos/id/1015/800/600',
-      price: 120,
-      rating: 4.8,
-      beds: 1,
-      baths: 1,
-      isAvailable: true,
-    ),
-    Property(
-      id: '2',
-      title: 'Luxury Villa near Russian Market',
-      location: 'BKK1, Phnom Penh',
-      imageUrl: 'https://picsum.photos/id/133/800/600',
-      price: 450,
-      rating: 4.9,
-      beds: 3,
-      baths: 2,
-      isAvailable: true,
-    ),
-    Property(
-      id: '3',
-      title: 'Cozy Studio near AEON Mall',
-      location: 'Sen Sok, Phnom Penh',
-      imageUrl: 'https://picsum.photos/id/201/800/600',
-      price: 85,
-      rating: 4.6,
-      beds: 1,
-      baths: 1,
-      isAvailable: false,
-    ),
-    Property(
-      id: '4',
-      title: 'Family House in Borey',
-      location: 'Chroy Changvar, Phnom Penh',
-      imageUrl: 'https://picsum.photos/id/251/800/600',
-      price: 320,
-      rating: 4.7,
-      beds: 4,
-      baths: 3,
-      isAvailable: true,
-    ),
-  ];
+  // ── API state ─────────────────────────────────────────────────────────────
+  List<Property> _allProperties = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
+  static const String _apiUrl =
+      'https://propertyrentalapi-simple.onrender.com/api/public/properties';
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  Future<void> _fetchProperties() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await http
+          .get(Uri.parse(_apiUrl))
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> json = jsonDecode(response.body);
+
+        if (json['success'] == true) {
+          // API wraps the array inside data.items, not data directly
+          final List<dynamic> dataList =
+              (json['data']['items'] as List<dynamic>?) ?? [];
+
+          setState(() {
+            _allProperties =
+                dataList.map((item) => _propertyFromJson(item)).toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = json['message'] ?? 'Failed to load properties.';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Server error: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Network error. Please check your connection.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Property _propertyFromJson(Map<String, dynamic> json) {
+    final images = json['images'] as List<dynamic>? ?? [];
+    final imageUrl = images.isNotEmpty
+        ? (images.first['url'] as String? ?? _placeholderImage(json['id']))
+        : _placeholderImage(json['id']);
+
+    final category =
+        (json['category'] as Map<String, dynamic>?)?['name'] as String? ?? '';
+
+    final createdBy = json['createdBy'] as Map<String, dynamic>? ?? {};
+    final agentName = createdBy['fullname'] as String? ?? '';
+    final agentUsername = createdBy['username'] as String? ?? '';
+    final agentProfile = createdBy['profile'] as String?;
+
+    return Property(
+      id: json['id'].toString(),
+      title: json['title'] as String? ?? 'Untitled',
+      location: json['address'] as String? ?? 'Phnom Penh',
+      imageUrl: imageUrl,
+      price: (json['price'] as num?)?.toDouble() ?? 0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.5,
+      beds: json['beds'] as int? ?? 1,
+      baths: json['baths'] as int? ?? 1,
+      isAvailable: json['available'] as bool? ?? false,
+      description: json['description'] as String? ?? '',
+      electricityCost: (json['electricityCost'] as num?)?.toDouble() ?? 0,
+      waterCost: (json['waterCost'] as num?)?.toDouble() ?? 0,
+      category: category,
+      agentName: agentName,
+      agentUsername: agentUsername,
+      agentProfile: agentProfile,
+    );
+  }
+
+  String _placeholderImage(dynamic id) {
+    final seed = (id is int ? id : int.tryParse(id.toString()) ?? 1) * 100;
+    return 'https://picsum.photos/seed/$seed/800/600';
+  }
+
+  // ── Filtered list ─────────────────────────────────────────────────────────
   List<Property> get _filteredProperties {
     return _allProperties.where((p) {
       final matchesSearch =
           p.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          p.location.toLowerCase().contains(_searchQuery.toLowerCase());
+              p.location.toLowerCase().contains(_searchQuery.toLowerCase());
+
       bool matchesFilter = true;
       if (_selectedFilter != 'All') {
         matchesFilter =
             (_selectedFilter == 'Near School' &&
                 p.location.contains('Toul Kork')) ||
-            (_selectedFilter == 'Available' && p.isAvailable);
+                (_selectedFilter == 'Available' && p.isAvailable);
       }
-      final matchesPrice = p.price < int.parse(_selectedPrice);
+
+      // FIX: parse to double so prices like 250.5 also work correctly
+      final matchesPrice = p.price < double.parse(_selectedPrice);
       return matchesSearch && matchesFilter && matchesPrice;
     }).toList();
   }
@@ -100,14 +149,10 @@ class _HomePageState extends State<HomePage>
     final isLoggedIn = AuthService.isLoggedIn;
     if (isLoggedIn) {
       Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ProfilePage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const ProfilePage()));
     } else {
       Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const LoginPage()));
     }
   }
 
@@ -122,16 +167,16 @@ class _HomePageState extends State<HomePage>
     _headerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _pageController, curve: Curves.easeOutCubic),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
+    _headerSlide =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
           CurvedAnimation(parent: _pageController, curve: Curves.easeOutCubic),
         );
-
     _searchScale = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(parent: _pageController, curve: Curves.elasticOut),
     );
 
     _pageController.forward();
+    _fetchProperties();
   }
 
   @override
@@ -155,7 +200,7 @@ class _HomePageState extends State<HomePage>
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // === LUXURY GREEN GRADIENT HERO HEADER ===
+            // ── Hero Header ─────────────────────────────────────────────
             SliverAppBar(
               expandedHeight: 260,
               floating: false,
@@ -185,22 +230,20 @@ class _HomePageState extends State<HomePage>
                             right: -30,
                             child: Opacity(
                               opacity: 0.12,
-                              child: Icon(
-                                Icons.home_work_rounded,
-                                size: 180,
-                                color: Colors.white,
-                              ),
+                              child: Icon(Icons.home_work_rounded,
+                                  size: 180, color: Colors.white),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding:
+                            const EdgeInsets.symmetric(horizontal: 24),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 20),
                                 Row(
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  MainAxisAlignment.spaceBetween,
                                   children: [
                                     FadeTransition(
                                       opacity: _headerFade,
@@ -208,15 +251,14 @@ class _HomePageState extends State<HomePage>
                                         position: _headerSlide,
                                         child: Column(
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               "Good morning,",
                                               style: GoogleFonts.poppins(
                                                 fontSize: 15,
-                                                color: Colors.white.withOpacity(
-                                                  0.85,
-                                                ),
+                                                color: Colors.white
+                                                    .withOpacity(0.85),
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -252,9 +294,8 @@ class _HomePageState extends State<HomePage>
                                           backgroundColor: Colors.white,
                                           child: CircleAvatar(
                                             radius: 24,
-                                            backgroundColor: const Color(
-                                              0xFF10B981,
-                                            ),
+                                            backgroundColor:
+                                            const Color(0xFF10B981),
                                             child: const Icon(
                                               Icons.person_rounded,
                                               color: Colors.white,
@@ -299,15 +340,10 @@ class _HomePageState extends State<HomePage>
               ),
             ),
 
-            // === SEARCH BAR NOW POSITIONED DOWN (BELOW HEADER) ===
+            // ── Search Bar ─────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  24,
-                  24,
-                  24,
-                  0,
-                ), // Clean spacing below header
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                 child: ScaleTransition(
                   scale: _searchScale,
                   child: Container(
@@ -315,7 +351,8 @@ class _HomePageState extends State<HomePage>
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withOpacity(0.7)),
+                      border:
+                      Border.all(color: Colors.white.withOpacity(0.7)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.12),
@@ -334,15 +371,11 @@ class _HomePageState extends State<HomePage>
                           color: Colors.grey[500],
                           fontSize: 16.5,
                         ),
-                        prefixIcon: const Icon(
-                          Icons.search_rounded,
-                          color: Color(0xFF10B981),
-                          size: 28,
-                        ),
+                        prefixIcon: const Icon(Icons.search_rounded,
+                            color: Color(0xFF10B981), size: 28),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 20,
-                        ),
+                        contentPadding:
+                        const EdgeInsets.symmetric(vertical: 20),
                       ),
                     ),
                   ),
@@ -350,19 +383,19 @@ class _HomePageState extends State<HomePage>
               ),
             ),
 
+            // ── Filters + List ─────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // === ANIMATED FILTER CHIPS ===
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
                           ...['All', 'Near School', 'Available'].map(
-                            (filter) => Padding(
+                                (filter) => Padding(
                               padding: const EdgeInsets.only(right: 12),
                               child: _buildAnimatedFilterChip(filter),
                             ),
@@ -372,9 +405,7 @@ class _HomePageState extends State<HomePage>
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 40),
-
                     FadeTransition(
                       opacity: _headerFade,
                       child: Text(
@@ -386,40 +417,15 @@ class _HomePageState extends State<HomePage>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
-                    // === STAGGERED LUXURY PROPERTY CARDS ===
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _filteredProperties.length,
-                      itemBuilder: (context, index) {
-                        final property = _filteredProperties[index];
-                        return TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          duration: Duration(milliseconds: 600 + (index * 120)),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 40 * (1 - value)),
-                              child: Opacity(opacity: value, child: child),
-                            );
-                          },
-                          child: GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ProductDetailPage(property: property),
-                              ),
-                            ),
-                            child: _buildPremiumPropertyCard(property, index),
-                          ),
-                        );
-                      },
-                    ),
-
+                    if (_isLoading)
+                      _buildLoadingState()
+                    else if (_errorMessage != null)
+                      _buildErrorState()
+                    else if (_filteredProperties.isEmpty)
+                        _buildEmptyState()
+                      else
+                        _buildPropertyList(),
                     const SizedBox(height: 140),
                   ],
                 ),
@@ -431,7 +437,123 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // All other methods remain exactly the same (filter chips, price selector, property cards, etc.)
+  // ── State widgets ──────────────────────────────────────────────────────────
+
+  Widget _buildLoadingState() {
+    return Column(
+      children: List.generate(
+        2,
+            (_) => Container(
+          margin: const EdgeInsets.only(bottom: 28),
+          height: 360,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF10B981),
+              strokeWidth: 3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            const Icon(Icons.cloud_off_rounded,
+                size: 64, color: Color(0xFF10B981)),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                  fontSize: 15, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _fetchProperties,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text("Retry", style: GoogleFonts.poppins()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            const Icon(Icons.search_off_rounded,
+                size: 64, color: Color(0xFF10B981)),
+            const SizedBox(height: 16),
+            Text(
+              "No properties match your filters.",
+              style: GoogleFonts.poppins(
+                  fontSize: 15, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPropertyList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _filteredProperties.length,
+      itemBuilder: (context, index) {
+        final property = _filteredProperties[index];
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: Duration(milliseconds: 600 + (index * 120)),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) => Transform.translate(
+            offset: Offset(0, 40 * (1 - value)),
+            child: Opacity(opacity: value, child: child),
+          ),
+          child: GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => ProductDetailPage(property: property)),
+            ),
+            // ── Use the extracted PropertyCard widget ──────────────────
+            child: PropertyCard(property: property, index: index),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+
   Widget _buildAnimatedFilterChip(String filter) {
     final isSelected = _selectedFilter == filter;
     return GestureDetector(
@@ -441,29 +563,31 @@ class _HomePageState extends State<HomePage>
         duration: const Duration(milliseconds: 220),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 280),
-          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
           decoration: BoxDecoration(
             gradient: isSelected
                 ? const LinearGradient(
-                    colors: [Color(0xFF10B981), Color(0xFF34D399)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
+              colors: [Color(0xFF10B981), Color(0xFF34D399)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
                 : null,
             color: isSelected ? null : Colors.white,
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: isSelected ? Colors.transparent : Colors.grey.shade200,
+              color:
+              isSelected ? Colors.transparent : Colors.grey.shade200,
               width: 1.5,
             ),
             boxShadow: isSelected
                 ? [
-                    BoxShadow(
-                      color: const Color(0xFF10B981).withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ]
+              BoxShadow(
+                color: const Color(0xFF10B981).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ]
                 : null,
           ),
           child: Text(
@@ -471,7 +595,8 @@ class _HomePageState extends State<HomePage>
             style: GoogleFonts.poppins(
               fontSize: 15.5,
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF374151),
+              color:
+              isSelected ? Colors.white : const Color(0xFF374151),
             ),
           ),
         ),
@@ -497,230 +622,26 @@ class _HomePageState extends State<HomePage>
       child: DropdownButton<String>(
         value: _selectedPrice,
         underline: const SizedBox(),
-        icon: const Icon(
-          Icons.arrow_drop_down_rounded,
-          color: Color(0xFF10B981),
-        ),
+        icon: const Icon(Icons.arrow_drop_down_rounded,
+            color: Color(0xFF10B981)),
         style: GoogleFonts.poppins(
           fontSize: 15.5,
           color: const Color(0xFF1F2937),
           fontWeight: FontWeight.w600,
         ),
         onChanged: (v) => setState(() => _selectedPrice = v!),
-        items: ['100', '200', '300', '400', '500', '600', '700', '800']
-            .map((v) => DropdownMenuItem(value: v, child: Text('Under \$$v')))
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildPremiumPropertyCard(Property property, int index) {
-    return Hero(
-      tag: 'property-${property.id}',
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 28),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.11),
-              blurRadius: 35,
-              offset: const Offset(0, 18),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: Column(
-            children: [
-              Stack(
-                children: [
-                  Image.network(
-                    property.imageUrl,
-                    height: 255,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 90,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.black26, Colors.transparent],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 18,
-                    right: 18,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.favorite_border_rounded,
-                        color: const Color(0xFFE11D48),
-                        size: 26,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 18,
-                    left: 18,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF10B981), Color(0xFF34D399)],
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(
-                        "\$${property.price}/mo",
-                        style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.all(24),
-                color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      property.title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 20.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          color: Color(0xFF10B981),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            property.location,
-                            style: GoogleFonts.poppins(
-                              fontSize: 15.5,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        _buildSpec(
-                          Icons.king_bed_outlined,
-                          "${property.beds} Beds",
-                        ),
-                        const SizedBox(width: 32),
-                        _buildSpec(
-                          Icons.bathtub_outlined,
-                          "${property.baths} Baths",
-                        ),
-                        const Spacer(),
-                        if (property.isAvailable)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              "Available Now",
-                              style: GoogleFonts.poppins(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF10B981),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Colors.amber,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          property.rating.toString(),
-                          style: GoogleFonts.poppins(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          "View Details →",
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF10B981),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        // FIX: added 'Any Price' (9999) as the first/default option
+        items: [
+          const DropdownMenuItem(value: '9999', child: Text('Any Price')),
+          ...['100', '200', '300', '400', '500', '600', '700', '800'].map(
+                (v) => DropdownMenuItem(value: v, child: Text('Under \$$v')),
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildSpec(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, color: const Color(0xFF10B981), size: 22),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: GoogleFonts.poppins(
-            fontSize: 15.5,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }
 
-// Custom curved header clipper (unchanged)
 class _HeaderCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
