@@ -4,7 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../core/auth_service.dart';
 
-import '../home/home_page.dart';
+import '../../screen/home_screen.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -287,20 +287,20 @@ class _LoginPageState extends State<LoginPage>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 _buildSocialButton(
-                                  FontAwesomeIcons.google,
+                                  FontAwesomeIcons.google as IconData,
                                   const Color(0xFFDB4437),
                                   () => _handleSocialLogin("Google"),
                                 ),
                                 const SizedBox(width: 24),
                                 _buildSocialButton(
-                                  FontAwesomeIcons.apple,
+                                  FontAwesomeIcons.apple as IconData,
                                   Colors.black,
                                   () => _handleSocialLogin("Apple"),
                                   34,
                                 ),
                                 const SizedBox(width: 24),
                                 _buildSocialButton(
-                                  FontAwesomeIcons.facebook,
+                                  FontAwesomeIcons.facebook as IconData,
                                   const Color(0xFF1877F2),
                                   () => _handleSocialLogin("Facebook"),
                                 ),
@@ -478,7 +478,7 @@ class _LoginPageState extends State<LoginPage>
           ],
         ),
         child: Center(
-          child: FaIcon(icon, color: Colors.white, size: size),
+          child: FaIcon(icon as FaIconData?, color: Colors.white, size: size),
         ),
       ),
     );

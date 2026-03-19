@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../home/home_page.dart';
+import '../home_screen.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
